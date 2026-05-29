@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>แชร์ตำแหน่ง</title>
+</head>
+<body>
+
+<button onclick="sendLocation()">
+แชร์ตำแหน่ง
+</button>
+
+<script>
+function sendLocation() {
+
+  navigator.geolocation.getCurrentPosition(
+    async function(position){
+
+      const latitude =
+        position.coords.latitude;
+
+      const longitude =
+        position.coords.longitude;
+
+      await fetch(
+        "http://localhost:3000/location",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body: JSON.stringify({
+            latitude,
+            longitude,
+            time:
+              new Date().toLocaleString()
+          })
+        }
+      );
+
+      alert("ส่งตำแหน่งแล้ว");
+    },
+    function(){
+      alert("ไม่ได้อนุญาตตำแหน่ง");
+    }
+  );
+}
+</script>
+
+</body>
+</html>
